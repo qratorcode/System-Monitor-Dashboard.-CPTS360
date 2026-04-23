@@ -19,6 +19,7 @@ import json
 import time
 import threading
 import asyncio
+import socket
 import websockets
 import logging
 from dataclasses import dataclass, asdict
@@ -76,6 +77,8 @@ class SystemMetrics:
     disk_write_rate: float  # bytes/sec
     net_sent_rate: float  # bytes/sec
     net_recv_rate: float  # bytes/sec
+    hostname: str
+    uptime: str
     processes: List[ProcessInfo]
 
 
@@ -242,7 +245,7 @@ class SystemMonitorDaemon:
             logger.error(f"Error reading disk I/O metrics: {e}")
             return DiskMetrics(read_rate=0.0, write_rate=0.0, total_read_bytes=0, total_write_bytes=0)
 
-    def _get_network_metrics(self) -> tuple:
+    def _get_network_metrics(self) -> Optional[NetworkMetrics]:
         """
         SYSTEM I/O: Monitor network activity via /proc/net/dev
         Collects network activity metrics and read/write operations
@@ -250,7 +253,7 @@ class SystemMonitorDaemon:
         try:
             netdev = self._read_file('/proc/net/dev')
             if not netdev:
-                return 0.0, 0.0
+                return NetworkMetrics(sent_rate=0.0, recv_rate=0.0, total_sent_bytes=0, total_recv_bytes=0)
 
             total_sent = 0
             total_recv = 0
@@ -283,13 +286,18 @@ class SystemMonitorDaemon:
             if self.prev_net_io is not None:
                 time_diff = time.time() - self.prev_time
                 if time_diff > 0:
-                    sent_rate = (total_sent - self.prev_net_io[0]) / time_diff
-                    recv_rate = (total_recv - self.prev_net_io[1]) / time_diff
+                    sent_rate = (total_sent - self.prev_net_io.total_sent_bytes) / time_diff
+                    recv_rate = (total_recv - self.prev_net_io.total_recv_bytes) / time_diff
 
-            return max(0, sent_rate), max(0, recv_rate), (total_sent, total_recv)
+            return NetworkMetrics(
+                sent_rate=max(0, sent_rate),
+                recv_rate=max(0, recv_rate),
+                total_sent_bytes=total_sent,
+                total_recv_bytes=total_recv
+            )
         except Exception as e:
             logger.error(f"Error reading network metrics: {e}")
-            return 0.0, 0.0, (0, 0)
+            return NetworkMetrics(sent_rate=0.0, recv_rate=0.0, total_sent_bytes=0, total_recv_bytes=0)
 
     def _get_process_metrics(self) -> List[ProcessInfo]:
         """
@@ -374,6 +382,41 @@ class SystemMonitorDaemon:
         
         return processes[:500]  # Limit to top 500 processes
 
+    def _get_hostname(self) -> str:
+        """Return the local hostname for display."""
+        try:
+            return socket.gethostname()
+        except Exception as e:
+            logger.debug(f"Hostname read failed: {e}")
+            return 'unknown'
+
+    def _get_uptime(self) -> str:
+        """Return formatted system uptime using /proc/uptime."""
+        try:
+            uptime_content = self._read_file('/proc/uptime')
+            if not uptime_content:
+                return 'unknown'
+            uptime_seconds = float(uptime_content.split()[0])
+            return self._format_uptime(uptime_seconds)
+        except Exception as e:
+            logger.debug(f"Uptime read failed: {e}")
+            return 'unknown'
+
+    def _format_uptime(self, seconds: float) -> str:
+        days = int(seconds // 86400)
+        hours = int((seconds % 86400) // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        parts = []
+        if days:
+            parts.append(f"{days}d")
+        if hours:
+            parts.append(f"{hours}h")
+        if minutes:
+            parts.append(f"{minutes}m")
+        parts.append(f"{secs}s")
+        return ' '.join(parts)
+
     def collect_metrics(self) -> Optional[SystemMetrics]:
         """
         CONCURRENT PROGRAMMING: Collect metrics using multi-threaded approach
@@ -385,27 +428,32 @@ class SystemMonitorDaemon:
             # Collect metrics using thread-safe operations
             cpu_percent, cpu_stats = self._get_cpu_metrics()
             memory_percent, memory_used, memory_total = self._get_memory_metrics()
-            disk_read_rate, disk_write_rate, disk_io = self._get_disk_io_metrics()
-            net_sent_rate, net_recv_rate, net_io = self._get_network_metrics()
+            disk_metrics = self._get_disk_io_metrics()
+            network_metrics = self._get_network_metrics()
             processes = self._get_process_metrics()
             
             # Update previous readings for rate calculations
             if cpu_stats:
                 self.prev_cpu_stats = cpu_stats
-            self.prev_disk_io = disk_io if disk_io else self.prev_disk_io
-            self.prev_net_io = net_io if net_io else self.prev_net_io
+            self.prev_disk_io = disk_metrics if disk_metrics else self.prev_disk_io
+            self.prev_net_io = network_metrics if network_metrics else self.prev_net_io
             self.prev_time = current_time
             
+            hostname = self._get_hostname()
+            uptime_string = self._get_uptime()
+
             metrics = SystemMetrics(
                 timestamp=current_time,
                 cpu_percent=cpu_percent,
                 memory_percent=memory_percent,
                 memory_used_mb=memory_used,
                 memory_total_mb=memory_total,
-                disk_read_rate=disk_read_rate,
-                disk_write_rate=disk_write_rate,
-                net_sent_rate=net_sent_rate,
-                net_recv_rate=net_recv_rate,
+                disk_read_rate=disk_metrics.read_rate if disk_metrics else 0.0,
+                disk_write_rate=disk_metrics.write_rate if disk_metrics else 0.0,
+                net_sent_rate=network_metrics.sent_rate if network_metrics else 0.0,
+                net_recv_rate=network_metrics.recv_rate if network_metrics else 0.0,
+                hostname=hostname,
+                uptime=uptime_string,
                 processes=processes,
             )
             

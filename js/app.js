@@ -42,41 +42,47 @@ function set_status_WS(connected) {
 }
 
 function handle_message(data) {
-    if (data.cpu) update_CPU(data.cpu);
-    if (data.memory) update_memory(data.memory);
-    if (data.disk) update_disk(data.disk);
-    if (data.network) update_network(data.network);
+    if (data.cpu_percent !== undefined) update_CPU(data);
+    if (data.memory_percent !== undefined) update_memory(data);
+    if (data.disk_read_rate !== undefined || data.disk_write_rate !== undefined) update_disk(data);
+    if (data.net_sent_rate !== undefined || data.net_recv_rate !== undefined) update_network(data);
     if (data.uptime) update_uptime(data.uptime);
     if (data.hostname) hostname_change(data.hostname);
     if (data.processes) proccess_table_UPDATE(data.processes);
-    if (data.cpu && data.memory) updateSparklines(data.cpu.percent, data.memory.percent);
+    if (data.cpu_percent !== undefined && data.memory_percent !== undefined) updateSparklines(data.cpu_percent, data.memory_percent);
 }
 
 connectWS();
 
 
 function update_CPU(data) {
-    document.getElementById("cpu_val").textContent = data.percent + "%";
-    document.getElementById("cpu_bar").style.width = data.percent + "%";
-    document.getElementById("cpu_sub").textContent = data.cores + " cores · " + data.ghz + " GHz";
+    const value = Math.round(data.cpu_percent * 10) / 10;
+    document.getElementById("cpu_val").textContent = value + "%";
+    document.getElementById("cpu_bar").style.width = value + "%";
+    document.getElementById("cpu_sub").textContent = "Live CPU usage";
 }
 
 function update_memory(data) {
-    document.getElementById("mem_val").textContent = data.percent + "%";
-    document.getElementById("mem_bar").style.width = data.percent + "%";
-    document.getElementById("mem_sub").textContent = data.used + " / " + data.total + " GB used";
+    const value = Math.round(data.memory_percent * 10) / 10;
+    document.getElementById("mem_val").textContent = value + "%";
+    document.getElementById("mem_bar").style.width = value + "%";
+    document.getElementById("mem_sub").textContent = data.memory_used_mb.toFixed(1) + " / " + data.memory_total_mb.toFixed(1) + " GB used";
 }
 
 function update_disk(data) {
-    document.getElementById("disk_val").textContent = data.percent + "%";
-    document.getElementById("disk_bar").style.width = data.percent + "%";
-    document.getElementById("disk_sub").textContent = "↑ " + data.write + " MB/s · ↓ " + data.read + " MB/s";
+    const readMB = (data.disk_read_rate / 1024 / 1024).toFixed(2);
+    const writeMB = (data.disk_write_rate / 1024 / 1024).toFixed(2);
+    document.getElementById("disk_val").textContent = readMB + " ↓ / " + writeMB + " ↑ MB/s";
+    document.getElementById("disk_bar").style.width = "100%";
+    document.getElementById("disk_sub").textContent = "Read " + readMB + " MB/s · Write " + writeMB + " MB/s";
 }
 
 function update_network(data) {
-    document.getElementById("net_val").textContent = data.percent + "%";
-    document.getElementById("net_bar").style.width = data.percent + "%";
-    document.getElementById("net_sub").textContent = "↑ " + data.upload + " MB/s · ↓ " + data.download + " MB/s";
+    const recvMB = (data.net_recv_rate / 1024 / 1024).toFixed(2);
+    const sentMB = (data.net_sent_rate / 1024 / 1024).toFixed(2);
+    document.getElementById("net_val").textContent = recvMB + " ↓ / " + sentMB + " ↑ MB/s";
+    document.getElementById("net_bar").style.width = "100%";
+    document.getElementById("net_sub").textContent = "Download " + recvMB + " MB/s · Upload " + sentMB + " MB/s";
 }
 
 function update_uptime(val) {
@@ -106,9 +112,9 @@ function proccess_table_UPDATE(processes) {
         row.innerHTML = `
             <span role="gridcell">${proc.name}</span>
             <span role="gridcell">${proc.pid}</span>
-            <span role="gridcell">${proc.cpu}%</span>
-            <span role="gridcell">${proc.mem}%</span>
-            <span role="gridcell">${proc.threads}</span>
+            <span role="gridcell">${proc.cpu_percent.toFixed(1)}%</span>
+            <span role="gridcell">${proc.memory_percent.toFixed(1)}%</span>
+            <span role="gridcell">${proc.num_threads}</span>
             <span role="gridcell" class="state_${proc.state.toLowerCase()}">${proc.state}</span>
         `;
         body.appendChild(row);
