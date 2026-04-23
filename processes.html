@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processes — System Monitoring</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="topbar">
+    <div id="topbar_left">
+        <strong id="application_title">SYSMON</strong>
+        <span class="topbar_tag">System Monitor</span>
+    </div>
+    <div id="topbar_right">
+        <span id="host_name">N/A</span>
+        <div id="ws_indicator" aria-live="polite">
+            <span id="ws_dot"></span>
+            <span id="ws_label">disconnected</span>
+        </div>
+    </div>
+</header>
+<div id="body">
+<aside id="sidebar">
+    <nav aria-label="Primary navigation">
+        <div class="nav_section_label">Views</div>
+        <ul class="nav_list">
+            <li data-view="overview"><a class="nav_item" href="index.html"><span class="nav_icon">&#9635;</span>Overview</a></li>
+            <li data-view="processes"><a class="nav_item active" href="processes.html"><span class="nav_icon">&#8801;</span>Processes</a></li>
+            <li data-view="memory"><a class="nav_item" href="memory.html"><span class="nav_icon">&#9647;</span>Memory</a></li>
+            <li data-view="disk"><a class="nav_item" href="disk.html"><span class="nav_icon">&#9646;</span>Disk I/O</a></li>
+            <li data-view="network"><a class="nav_item" href="network.html"><span class="nav_icon">&#8645;</span>Network</a></li>
+        </ul>
+        <div class="nav_section_label">System</div>
+        <ul class="nav_list">
+            <li data-view="cores"><a class="nav_item" href="cores.html"><span class="nav_icon">&#9673;</span>CPU Cores</a></li>
+        </ul>
+    </nav>
+    <footer id="sidebar_bottom">
+        <p>WS: <span id="ws_status">not connected</span></p>
+        <p>Uptime: <span id="uptime">N/A</span></p>
+    </footer>
+</aside>
+<main id="main" role="main">
+    <section id="process_section" aria-labelledby="process_section_title">
+        <header id="process_header">
+            <h2 id="process_section_title" class="section_title">Processes</h2>
+            <p id="proc_count">N/A running</p>
+        </header>
+        <div id="process_table_wrap" role="table">
+            <div id="table_head" role="rowgroup">
+                <div role="row">
+                    <span role="columnheader">Name</span>
+                    <span role="columnheader">PID</span>
+                    <span role="columnheader">CPU %</span>
+                    <span role="columnheader">MEM %</span>
+                    <span role="columnheader">Threads</span>
+                    <span role="columnheader">State</span>
+                </div>
+            </div>
+            <div id="table_body" role="rowgroup">
+                <div class="table_empty" role="row">
+                    <span role="gridcell">Waiting for data...</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>

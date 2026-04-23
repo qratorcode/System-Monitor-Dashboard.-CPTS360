@@ -102,13 +102,14 @@ function proccess_table_UPDATE(processes) {
     processes.forEach(function(proc) {
         const row = document.createElement("div");
         row.className = "table_row";
+        row.setAttribute("role", "row");
         row.innerHTML = `
-            <span>${proc.name}</span>
-            <span>${proc.pid}</span>
-            <span>${proc.cpu}%</span>
-            <span>${proc.mem}%</span>
-            <span>${proc.threads}</span>
-            <span class="state_${proc.state.toLowerCase()}">${proc.state}</span>
+            <span role="gridcell">${proc.name}</span>
+            <span role="gridcell">${proc.pid}</span>
+            <span role="gridcell">${proc.cpu}%</span>
+            <span role="gridcell">${proc.mem}%</span>
+            <span role="gridcell">${proc.threads}</span>
+            <span role="gridcell" class="state_${proc.state.toLowerCase()}">${proc.state}</span>
         `;
         body.appendChild(row);
     });

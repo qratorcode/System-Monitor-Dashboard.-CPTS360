@@ -47,8 +47,26 @@ class ProcessInfo:
 
 
 @dataclass
+class DiskMetrics:
+    """Disk I/O metrics."""
+    read_rate: float  # bytes/sec
+    write_rate: float  # bytes/sec
+    total_read_bytes: int
+    total_write_bytes: int
+
+
+@dataclass
+class NetworkMetrics:
+    """Network traffic metrics."""
+    sent_rate: float  # bytes/sec
+    recv_rate: float  # bytes/sec
+    total_sent_bytes: int
+    total_recv_bytes: int
+
+
+@dataclass
 class SystemMetrics:
-    """System metrics data structure"""
+    """System-wide metrics data structure."""
     timestamp: float
     cpu_percent: float
     memory_percent: float
@@ -166,7 +184,7 @@ class SystemMonitorDaemon:
             logger.error(f"Error reading memory metrics: {e}")
             return 0.0, 0.0, 0.0
 
-    def _get_disk_io_metrics(self) -> tuple:
+    def _get_disk_io_metrics(self) -> Optional[DiskMetrics]:
         """
         SYSTEM I/O: Monitor disk activity via /proc/diskstats
         Collects disk I/O statistics and file system activity metrics
@@ -174,7 +192,7 @@ class SystemMonitorDaemon:
         try:
             diskstats = self._read_file('/proc/diskstats')
             if not diskstats:
-                return 0.0, 0.0
+                return DiskMetrics(read_rate=0.0, write_rate=0.0, total_read_bytes=0, total_write_bytes=0)
 
             total_read_sectors = 0
             total_write_sectors = 0
@@ -211,13 +229,18 @@ class SystemMonitorDaemon:
             if self.prev_disk_io is not None:
                 time_diff = time.time() - self.prev_time
                 if time_diff > 0:
-                    read_rate = (total_read_bytes - self.prev_disk_io[0]) / time_diff
-                    write_rate = (total_write_bytes - self.prev_disk_io[1]) / time_diff
+                    read_rate = (total_read_bytes - self.prev_disk_io.total_read_bytes) / time_diff
+                    write_rate = (total_write_bytes - self.prev_disk_io.total_write_bytes) / time_diff
 
-            return max(0, read_rate), max(0, write_rate), (total_read_bytes, total_write_bytes)
+            return DiskMetrics(
+                read_rate=max(0, read_rate),
+                write_rate=max(0, write_rate),
+                total_read_bytes=total_read_bytes,
+                total_write_bytes=total_write_bytes
+            )
         except Exception as e:
             logger.error(f"Error reading disk I/O metrics: {e}")
-            return 0.0, 0.0, (0, 0)
+            return DiskMetrics(read_rate=0.0, write_rate=0.0, total_read_bytes=0, total_write_bytes=0)
 
     def _get_network_metrics(self) -> tuple:
         """

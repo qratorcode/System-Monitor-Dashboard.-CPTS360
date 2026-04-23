@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory — System Monitoring</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="topbar">
+    <div id="topbar_left">
+        <strong id="application_title">SYSMON</strong>
+        <span class="topbar_tag">System Monitor</span>
+    </div>
+    <div id="topbar_right">
+        <span id="host_name">N/A</span>
+        <div id="ws_indicator" aria-live="polite">
+            <span id="ws_dot"></span>
+            <span id="ws_label">disconnected</span>
+        </div>
+    </div>
+</header>
+<div id="body">
+<aside id="sidebar">
+    <nav aria-label="Primary navigation">
+        <div class="nav_section_label">Views</div>
+        <ul class="nav_list">
+            <li data-view="overview"><a class="nav_item" href="index.html"><span class="nav_icon">&#9635;</span>Overview</a></li>
+            <li data-view="processes"><a class="nav_item" href="processes.html"><span class="nav_icon">&#8801;</span>Processes</a></li>
+            <li data-view="memory"><a class="nav_item active" href="memory.html"><span class="nav_icon">&#9647;</span>Memory</a></li>
+            <li data-view="disk"><a class="nav_item" href="disk.html"><span class="nav_icon">&#9646;</span>Disk I/O</a></li>
+            <li data-view="network"><a class="nav_item" href="network.html"><span class="nav_icon">&#8645;</span>Network</a></li>
+        </ul>
+        <div class="nav_section_label">System</div>
+        <ul class="nav_list">
+            <li data-view="cores"><a class="nav_item" href="cores.html"><span class="nav_icon">&#9673;</span>CPU Cores</a></li>
+        </ul>
+    </nav>
+    <footer id="sidebar_bottom">
+        <p>WS: <span id="ws_status">not connected</span></p>
+        <p>Uptime: <span id="uptime">N/A</span></p>
+    </footer>
+</aside>
+<main id="main" role="main">
+    <section id="metrics_grid" aria-label="Memory metrics">
+        <article class="metric_card" id="card_mem">
+            <div class="metric_top">
+                <span class="metric_label">Memory</span>
+                <span class="metric_value" id="mem_val">N/A</span>
+            </div>
+            <div class="metric_sub" id="mem_sub">N/A / N/A GB used</div>
+            <div class="bar_bg">
+                <div class="bar_fill" id="mem_bar"></div>
+            </div>
+        </article>
+    </section>
+    <section id="graphs_row" aria-label="Memory history">
+        <article class="graph_card" id="graph_mem">
+            <h2 class="graph_title">Memory % — last 30s</h2>
+            <div class="sparkline" id="mem_spark">
+                <span class="no_data">No data yet</span>
+            </div>
+        </article>
+    </section>
+</main>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>

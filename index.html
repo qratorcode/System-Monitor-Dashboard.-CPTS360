@@ -7,157 +7,122 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<div id="topbar">
-<div id="topbar_left">
-    <span id="application_title">SYSMON</span>
-    <span class="topbar_tag">System Monitor</span>
-</div>
-
-
+<header id="topbar">
+    <div id="topbar_left">
+        <strong id="application_title">SYSMON</strong>
+        <span class="topbar_tag">System Monitor</span>
+    </div>
     <div id="topbar_right">
         <span id="host_name">N/A</span>
-        <div id="ws_indicator">
+        <div id="ws_indicator" aria-live="polite">
             <span id="ws_dot"></span>
             <span id="ws_label">disconnected</span>
         </div>
     </div>
-
-
-</div>
-
+</header>
 <div id="body">
-
-<div id="sidebar">
-<div class="nav_section_label">Views</div>
-
-    <div class="nav_item active" data-view="overview">
-        <span class="nav_icon">&#9635;</span>
-        <span>Overview</span>
-    </div>
-    <div class="nav_item" data-view="processes">
-        <span class="nav_icon">&#8801;</span>
-        <span>Processes</span>
-    </div>
-    <div class="nav_item" data-view="memory">
-        <span class="nav_icon">&#9647;</span>
-        <span>Memory</span>
-    </div>
-    <div class="nav_item" data-view="disk">
-        <span class="nav_icon">&#9646;</span>
-        <span>Disk I/O</span>
-    </div>
-    <div class="nav_item" data-view="network">
-        <span class="nav_icon">&#8645;</span>
-        <span>Network</span>
-    </div>
-
-
-
-
-<div class="nav_section_label">System</div>
-
-    <div class="nav_item" data-view="cores">
-        <span class="nav_icon">&#9673;</span>
-        <span>CPU Cores</span>
-    </div>
-
-   <div id="sidebar_bottom">
-       <div>WS: <span id="ws_status">not connected</span></div>
-       <div>uptime: <span id="uptime">N/A</span></div>
-   </div>
-
-
-
+<aside id="sidebar">
+    <nav aria-label="Primary navigation">
+        <div class="nav_section_label">Views</div>
+        <ul class="nav_list">
+            <li data-view="overview"><a class="nav_item active" href="index.html"><span class="nav_icon">&#9635;</span>Overview</a></li>
+            <li data-view="processes"><a class="nav_item" href="processes.html"><span class="nav_icon">&#8801;</span>Processes</a></li>
+            <li data-view="memory"><a class="nav_item" href="memory.html"><span class="nav_icon">&#9647;</span>Memory</a></li>
+            <li data-view="disk"><a class="nav_item" href="disk.html"><span class="nav_icon">&#9646;</span>Disk I/O</a></li>
+            <li data-view="network"><a class="nav_item" href="network.html"><span class="nav_icon">&#8645;</span>Network</a></li>
+        </ul>
+        <div class="nav_section_label">System</div>
+        <ul class="nav_list">
+            <li data-view="cores"><a class="nav_item" href="cores.html"><span class="nav_icon">&#9673;</span>CPU Cores</a></li>
+        </ul>
+    </nav>
+    <footer id="sidebar_bottom">
+        <p>WS: <span id="ws_status">not connected</span></p>
+        <p>Uptime: <span id="uptime">N/A</span></p>
+    </footer>
+</aside>
+<main id="main" role="main">
+    <section id="metrics_grid" aria-label="Summary metrics">
+        <article class="metric_card" id="card_cpu">
+            <div class="metric_top">
+                <span class="metric_label">CPU Usage</span>
+                <span class="metric_value" id="cpu_val">N/A</span>
+            </div>
+            <div class="metric_sub" id="cpu_sub">N/A cores &middot; N/A GHz</div>
+            <div class="bar_bg">
+                <div class="bar_fill" id="cpu_bar"></div>
+            </div>
+        </article>
+        <article class="metric_card" id="card_mem">
+            <div class="metric_top">
+                <span class="metric_label">Memory</span>
+                <span class="metric_value" id="mem_val">N/A</span>
+            </div>
+            <div class="metric_sub" id="mem_sub">N/A / N/A GB used</div>
+            <div class="bar_bg">
+                <div class="bar_fill" id="mem_bar"></div>
+            </div>
+        </article>
+        <article class="metric_card" id="card_disk">
+            <div class="metric_top">
+                <span class="metric_label">Disk I/O</span>
+                <span class="metric_value" id="disk_val">N/A</span>
+            </div>
+            <div class="metric_sub" id="disk_sub">&uarr; N/A MB/s &middot; &darr; N/A MB/s</div>
+            <div class="bar_bg">
+                <div class="bar_fill" id="disk_bar"></div>
+            </div>
+        </article>
+        <article class="metric_card" id="card_net">
+            <div class="metric_top">
+                <span class="metric_label">Network</span>
+                <span class="metric_value" id="net_val">N/A</span>
+            </div>
+            <div class="metric_sub" id="net_sub">&uarr; N/A MB/s &middot; &darr; N/A MB/s</div>
+            <div class="bar_bg">
+                <div class="bar_fill" id="net_bar"></div>
+            </div>
+        </article>
+    </section>
+    <section id="graphs_row" aria-label="Realtime graphs">
+        <article class="graph_card" id="graph_cpu">
+            <h2 class="graph_title">CPU % — last 30s</h2>
+            <div class="sparkline" id="cpu_spark">
+                <span class="no_data">No data yet</span>
+            </div>
+        </article>
+        <article class="graph_card" id="graph_mem">
+            <h2 class="graph_title">Memory % — last 30s</h2>
+            <div class="sparkline" id="mem_spark">
+                <span class="no_data">No data yet</span>
+            </div>
+        </article>
+    </section>
+    <section id="process_section" aria-labelledby="process_section_title">
+        <header id="process_header">
+            <h2 id="process_section_title" class="section_title">Processes</h2>
+            <p id="proc_count">N/A running</p>
+        </header>
+        <div id="process_table_wrap" role="table">
+            <div id="table_head" role="rowgroup">
+                <div role="row">
+                    <span role="columnheader">Name</span>
+                    <span role="columnheader">PID</span>
+                    <span role="columnheader">CPU %</span>
+                    <span role="columnheader">MEM %</span>
+                    <span role="columnheader">Threads</span>
+                    <span role="columnheader">State</span>
+                </div>
+            </div>
+            <div id="table_body" role="rowgroup">
+                <div class="table_empty" role="row">
+                    <span role="gridcell">Waiting for data...</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
 </div>
-
-        <main id="main">
-
-<section id="metrics_grid">
-    <div class="metric_card" id="card_cpu">
-        <div class="metric_top">
-            <span class="metric_label">CPU Usage</span>
-            <span class="metric_value" id="cpu_val">N/A</span>
-        </div>
-        <div class="metric_sub" id="cpu_sub">N/A cores &middot; N/A GHz</div>
-        <div class="bar_bg">
-            <div class="bar_fill" id="cpu_bar" style="width: 0%;"></div>
-        </div>
-    </div>
-    <div class="metric_card" id="card_mem">
-        <div class="metric_top">
-            <span class="metric_label">Memory</span>
-            <span class="metric_value" id="mem_val">N/A</span>
-        </div>
-        <div class="metric_sub" id="mem_sub">N/A / N/A GB used</div>
-        <div class="bar_bg">
-            <div class="bar_fill" id="mem_bar" style="width: 0%;"></div>
-        </div>
-    </div>
-    <div class="metric_card" id="card_disk">
-        <div class="metric_top">
-            <span class="metric_label">Disk I/O</span>
-            <span class="metric_value" id="disk_val">N/A</span>
-        </div>
-        <div class="metric_sub" id="disk_sub">&uarr; N/A MB/s &middot; &darr; N/A MB/s</div>
-        <div class="bar_bg">
-            <div class="bar_fill" id="disk_bar" style="width: 0%;"></div>
-        </div>
-    </div>
-    <div class="metric_card" id="card_net">
-        <div class="metric_top">
-            <span class="metric_label">Network</span>
-            <span class="metric_value" id="net_val">N/A</span>
-        </div>
-        <div class="metric_sub" id="net_sub">&uarr; N/A MB/s &middot; &darr; N/A MB/s</div>
-        <div class="bar_bg">
-            <div class="bar_fill" id="net_bar" style="width: 0%;"></div>
-        </div>
-    </div>
-</section>
-
-
-<section id="graphs_row">
-    <div class="graph_card" id="graph_cpu">
-        <div class="graph_title">CPU % — last 30s</div>
-        <div class="sparkline" id="cpu_spark">
-            <span class="no_data">No data yet</span>
-        </div>
-    </div>
-    <div class="graph_card" id="graph_mem">
-        <div class="graph_title">Memory % — last 30s</div>
-        <div class="sparkline" id="mem_spark">
-            <span class="no_data">No data yet</span>
-        </div>
-    </div>
-</section>
-
-
-<section id="process_section">
-<div id="process_header">
-    <span class="section_title">Processes</span>
-    <span id="proc_count">N/A running</span>
-</div>
-
-<div id="process_table_wrap">
-<div id="table_head">
-    <span>Name</span>
-    <span>PID</span>
-    <span>CPU %</span>
-    <span>MEM %</span>
-    <span>Threads</span>
-    <span>State</span>
-</div>
-<div id="table_body">
-    <div class="table_empty">Waiting for data...</div>
-</div>
-</div>
-</section>
-
-        </main>
-
-</div>
-
 <script src="js/app.js"></script>
 </body>
 </html>
