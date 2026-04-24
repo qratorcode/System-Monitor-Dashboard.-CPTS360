@@ -1,13 +1,12 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0a0e27" />
-    <meta
-      name="description"
-      content="Real-time system monitoring dashboard"
-    />
+    <meta name="description" content="Real-time system monitoring dashboard" />
     <title>System Monitor</title>
     <style>
       * {
@@ -20,9 +19,95 @@
         height: 100%;
       }
     </style>
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="topbar">
+      <div id="topbar_left">
+        <span id="application_title">SYSMON</span>
+        <span class="topbar_tag">v1.0</span>
+      </div>
+      <div id="topbar_right">
+        <span id="host_name">—</span>
+        <div id="ws_indicator">
+          <div id="ws_dot"></div>
+          <span id="ws_label">connecting</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="body">
+      
+
+      <div id="main">
+        <div id="metrics_grid">
+          <div class="metric_card" id="card_cpu">
+            <div class="metric_top">
+              <span class="metric_label">CPU</span>
+            </div>
+            <div class="metric_value" id="cpu_val">0%</div>
+            <div class="metric_sub" id="cpu_sub">— cores · — GHz</div>
+            <div class="bar_bg"><div class="bar_fill" id="cpu_bar"></div></div>
+          </div>
+          <div class="metric_card" id="card_mem">
+            <div class="metric_top">
+              <span class="metric_label">Memory</span>
+            </div>
+            <div class="metric_value" id="mem_val">0%</div>
+            <div class="metric_sub" id="mem_sub">— / — GB used</div>
+            <div class="bar_bg"><div class="bar_fill" id="mem_bar"></div></div>
+          </div>
+          <div class="metric_card" id="card_disk">
+            <div class="metric_top">
+              <span class="metric_label">Disk</span>
+            </div>
+            <div class="metric_value" id="disk_val">0%</div>
+            <div class="metric_sub" id="disk_sub">↑ — MB/s · ↓ — MB/s</div>
+            <div class="bar_bg"><div class="bar_fill" id="disk_bar"></div></div>
+          </div>
+          <div class="metric_card" id="card_net">
+            <div class="metric_top">
+              <span class="metric_label">Network</span>
+            </div>
+            <div class="metric_value" id="net_val">0%</div>
+            <div class="metric_sub" id="net_sub">↑ — MB/s · ↓ — MB/s</div>
+            <div class="bar_bg"><div class="bar_fill" id="net_bar"></div></div>
+          </div>
+        </div>
+
+        <div id="graphs_row">
+          <div class="graph_card">
+            <div class="graph_title">CPU History</div>
+            <div class="sparkline" id="cpu_spark"><span class="no_data">waiting for data</span></div>
+          </div>
+          <div class="graph_card">
+            <div class="graph_title">Memory History</div>
+            <div class="sparkline" id="mem_spark"><span class="no_data">waiting for data</span></div>
+          </div>
+        </div>
+
+        <div id="process_section">
+          <div id="process_header">
+            <span class="section_title">Processes</span>
+            <span id="proc_count">0 running</span>
+          </div>
+          <div id="process_table_wrap">
+            <div id="table_head">
+              <span>Name</span>
+              <span>PID</span>
+              <span>CPU</span>
+              <span>Mem</span>
+              <span>Threads</span>
+              <span>State</span>
+            </div>
+            <div id="table_body">
+              <div class="table_empty">Waiting for data...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/app.js"></script>
   </body>
 </html>

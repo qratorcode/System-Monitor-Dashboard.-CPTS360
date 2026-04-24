@@ -1,4 +1,4 @@
-const WS_URL = "ws://localhost:8080";
+const WS_URL = "ws://localhost:3000";
 
 let socket = null;
 function connectWS() {
@@ -42,14 +42,31 @@ function set_status_WS(connected) {
 }
 
 function handle_message(data) {
-    if (data.cpu) update_CPU(data.cpu);
-    if (data.memory) update_memory(data.memory);
-    if (data.disk) update_disk(data.disk);
-    if (data.network) update_network(data.network);
+    if (data.cpu_percent !== undefined) update_CPU({
+        percent: data.cpu_percent.toFixed(1),
+        cores: data.cpu_cores || '—',
+        ghz: data.cpu_ghz || '—'
+    });
+    if (data.memory_percent !== undefined) update_memory({
+        percent: data.memory_percent.toFixed(1),
+        used: (data.memory_used_mb / 1024).toFixed(1),
+        total: (data.memory_total_mb / 1024).toFixed(1)
+    });
+    if (data.disk_read_rate !== undefined) update_disk({
+        percent: 0,
+        read: (data.disk_read_rate / 1048576).toFixed(1),
+        write: (data.disk_write_rate / 1048576).toFixed(1)
+    });
+    if (data.net_sent_rate !== undefined) update_network({
+        percent: 0,
+        upload: (data.net_sent_rate / 1048576).toFixed(1),
+        download: (data.net_recv_rate / 1048576).toFixed(1)
+    });
     if (data.uptime) update_uptime(data.uptime);
     if (data.hostname) hostname_change(data.hostname);
     if (data.processes) proccess_table_UPDATE(data.processes);
-    if (data.cpu && data.memory) updateSparklines(data.cpu.percent, data.memory.percent);
+    if (data.cpu_percent !== undefined && data.memory_percent !== undefined)
+        updateSparklines(data.cpu_percent, data.memory_percent);
 }
 
 connectWS();
@@ -105,9 +122,9 @@ function proccess_table_UPDATE(processes) {
         row.innerHTML = `
             <span>${proc.name}</span>
             <span>${proc.pid}</span>
-            <span>${proc.cpu}%</span>
-            <span>${proc.mem}%</span>
-            <span>${proc.threads}</span>
+            <span>${proc.cpu_percent}%</span>
+            <span>${proc.memory_percent}%</span>
+            <span>${proc.num_threads}</span>
             <span class="state_${proc.state.toLowerCase()}">${proc.state}</span>
         `;
         body.appendChild(row);
