@@ -22,6 +22,7 @@ import asyncio
 import socket
 import websockets
 import logging
+import psutil
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -126,105 +127,45 @@ class SystemMonitorDaemon:
 
     def _get_cpu_metrics(self) -> tuple:
         """
-        PROCESS SCHEDULING: Monitor CPU usage via /proc/stat
-        Reads kernel-level CPU statistics from /proc/stat
+        PROCESS SCHEDULING: Monitor CPU usage using psutil
+        Uses psutil.cpu_percent() to get CPU utilization
         """
         try:
-            stat_data = self._read_file('/proc/stat')
-            if not stat_data:
-                return 0.0, None
-
-            lines = stat_data.strip().split('\n')
-            cpu_line = lines[0]  # First line is total CPU stats
-            
-            # Parse: cpu  user nice system idle iowait irq softirq ...
-            parts = cpu_line.split()
-            user = int(parts[1])
-            nice = int(parts[2])
-            system = int(parts[3])
-            idle = int(parts[4])
-            iowait = int(parts[5])
-            
-            total = user + nice + system + idle + iowait
-            busy = user + nice + system + iowait
-            
-            # Calculate CPU percentage based on change since last reading
-            cpu_percent = 0.0
-            if self.prev_cpu_stats is not None:
-                prev_total, prev_busy = self.prev_cpu_stats
-                if total > prev_total:
-                    cpu_percent = ((busy - prev_busy) / (total - prev_total)) * 100
-            
-            return min(100.0, cpu_percent), (total, busy)
+            # Get CPU percentage (interval=None returns since last call)
+            cpu_percent = psutil.cpu_percent(interval=None)
+            return cpu_percent, (time.time(), cpu_percent)
         except Exception as e:
             logger.error(f"Error reading CPU metrics: {e}")
             return 0.0, None
 
     def _get_memory_metrics(self) -> tuple:
         """
-        VIRTUAL MEMORY: Monitor memory usage via /proc/meminfo
-        Tracks memory usage patterns and VM mappings
+        VIRTUAL MEMORY: Monitor memory usage using psutil
+        Uses psutil.virtual_memory() to get memory statistics
         """
         try:
-            meminfo = self._read_file('/proc/meminfo')
-            if not meminfo:
-                return 0.0, 0.0, 0.0
-
-            mem_dict = {}
-            for line in meminfo.split('\n'):
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    mem_dict[key.strip()] = int(value.split()[0])
-
-            total = mem_dict.get('MemTotal', 1)
-            available = mem_dict.get('MemAvailable', mem_dict.get('MemFree', 0))
-            used = total - available
+            mem = psutil.virtual_memory()
+            memory_percent = mem.percent
+            memory_used = mem.used / (1024 * 1024)  # Convert to MB
+            memory_total = mem.total / (1024 * 1024)  # Convert to MB
             
-            memory_percent = (used / total) * 100 if total > 0 else 0
-            
-            return memory_percent, used / 1024, total / 1024
+            return memory_percent, memory_used, memory_total
         except Exception as e:
             logger.error(f"Error reading memory metrics: {e}")
             return 0.0, 0.0, 0.0
 
     def _get_disk_io_metrics(self) -> Optional[DiskMetrics]:
         """
-        SYSTEM I/O: Monitor disk activity via /proc/diskstats
-        Collects disk I/O statistics and file system activity metrics
+        SYSTEM I/O: Monitor disk activity using psutil
+        Uses psutil.disk_io_counters() to get disk I/O statistics
         """
         try:
-            diskstats = self._read_file('/proc/diskstats')
-            if not diskstats:
+            disk_io = psutil.disk_io_counters()
+            if not disk_io:
                 return DiskMetrics(read_rate=0.0, write_rate=0.0, total_read_bytes=0, total_write_bytes=0)
 
-            total_read_sectors = 0
-            total_write_sectors = 0
-
-            for line in diskstats.split('\n'):
-                if not line.strip():
-                    continue
-                parts = line.split()
-                if len(parts) < 14:
-                    continue
-                
-                # Skip loop, ram, and dm devices
-                device = parts[2]
-                if device.startswith(('loop', 'ram', 'dm-')):
-                    continue
-
-                reads_completed = int(parts[3])
-                writes_completed = int(parts[7])
-
-                # Sectors * 512 bytes = bytes
-                sectors_read = int(parts[5]) if len(parts) > 5 else 0
-                sectors_written = int(parts[9]) if len(parts) > 9 else 0
-
-                total_read_sectors += sectors_read
-                total_write_sectors += sectors_written
-
-            # Convert to bytes
-            total_read_bytes = total_read_sectors * 512
-            total_write_bytes = total_write_sectors * 512
+            total_read_bytes = disk_io.read_bytes
+            total_write_bytes = disk_io.write_bytes
 
             # Calculate rates (bytes/sec)
             read_rate = 0.0
@@ -247,38 +188,16 @@ class SystemMonitorDaemon:
 
     def _get_network_metrics(self) -> Optional[NetworkMetrics]:
         """
-        SYSTEM I/O: Monitor network activity via /proc/net/dev
-        Collects network activity metrics and read/write operations
+        SYSTEM I/O: Monitor network activity using psutil
+        Uses psutil.net_io_counters() to get network statistics
         """
         try:
-            netdev = self._read_file('/proc/net/dev')
-            if not netdev:
+            net_io = psutil.net_io_counters()
+            if not net_io:
                 return NetworkMetrics(sent_rate=0.0, recv_rate=0.0, total_sent_bytes=0, total_recv_bytes=0)
 
-            total_sent = 0
-            total_recv = 0
-
-            for line in netdev.split('\n')[2:]:  # Skip header lines
-                if not line.strip():
-                    continue
-                
-                # Skip loopback
-                if 'lo:' in line:
-                    continue
-
-                # Parse: face |bytes    packets errs drop fifo frame compressed multicast|
-                parts = line.split()
-                if len(parts) < 16:
-                    continue
-
-                # Columns: name, recv_bytes, recv_packets, recv_errs, ...
-                try:
-                    recv_bytes = int(parts[1])
-                    sent_bytes = int(parts[9])
-                    total_recv += recv_bytes
-                    total_sent += sent_bytes
-                except (ValueError, IndexError):
-                    continue
+            total_sent = net_io.bytes_sent
+            total_recv = net_io.bytes_recv
 
             # Calculate rates (bytes/sec)
             sent_rate = 0.0
@@ -301,66 +220,41 @@ class SystemMonitorDaemon:
 
     def _get_process_metrics(self) -> List[ProcessInfo]:
         """
-        PROCESS SCHEDULING: Monitor active processes and their resource usage
-        Shows PIDs, states, CPU/memory usage, thread counts, and parent-child relationships
+        PROCESS SCHEDULING: Monitor active processes using psutil
+        Uses psutil.process_iter() to get process information
         """
         processes = []
         try:
-            proc_dir = Path('/proc')
+            # Get memory total for percentage calculation
+            mem = psutil.virtual_memory()
+            memory_total = mem.total
             
-            # Get CPU and memory for scaling
-            _, _, memory_total = self._get_memory_metrics()
-            
-            for proc_path in proc_dir.iterdir():
+            for proc in psutil.process_iter(['pid', 'name', 'status', 'cpu_percent', 'memory_percent', 'num_threads', 'ppid']):
                 try:
-                    if not proc_path.is_dir() or not proc_path.name.isdigit():
-                        continue
+                    # Get process info using psutil
+                    pinfo = proc.info
                     
-                    pid = int(proc_path.name)
-                    
-                    # Read status file for process info
-                    status_file = proc_path / 'status'
-                    if not status_file.exists():
-                        continue
-                    
-                    status = self._read_file(str(status_file))
-                    if not status:
-                        continue
-                    
-                    # Extract info from status
-                    info = {}
-                    for line in status.split('\n'):
-                        if ':' in line:
-                            key, value = line.split(':', 1)
-                            info[key.strip()] = value.strip()
-                    
-                    name = info.get('Name', 'unknown')
-                    state = info.get('State', '?').split()[0] if 'State' in info else '?'
-                    num_threads = int(info.get('Threads', '1'))
-                    ppid = int(info.get('PPid', '-1'))
-                    vm_rss_kb = int(info.get('VmRSS', '0').split()[0])
-                    
-                    # Read stat file for CPU metrics
-                    stat_file = proc_path / 'stat'
-                    if stat_file.exists():
-                        stat_data = self._read_file(str(stat_file))
-                        if stat_data:
-                            # Last field is typically utime + stime
-                            stat_parts = stat_data.split()
-                            if len(stat_parts) > 14:
-                                # Rough CPU estimation based on CPU time
-                                # (This is a simplified calculation)
-                                cpu_time = int(stat_parts[13]) + int(stat_parts[14])
-                                cpu_percent = min(100.0, (cpu_time % 1000) / 10.0)
-                            else:
-                                cpu_percent = 0.0
-                        else:
-                            cpu_percent = 0.0
-                    else:
-                        cpu_percent = 0.0
-                    
-                    # Calculate memory percentage
-                    memory_percent = (vm_rss_kb / (memory_total * 1024)) * 100 if memory_total > 0 else 0
+                    pid = pinfo['pid']
+                    name = pinfo['name'] or 'unknown'
+                    # Map psutil status to single character state
+                    status = pinfo['status'] or '?'
+                    state_map = {
+                        psutil.STATUS_RUNNING: 'R',
+                        psutil.STATUS_SLEEPING: 'S',
+                        psutil.STATUS_DISK_SLEEP: 'D',
+                        psutil.STATUS_STOPPED: 'T',
+                        psutil.STATUS_TRACING_STOP: 't',
+                        psutil.STATUS_ZOMBIE: 'Z',
+                        psutil.STATUS_DEAD: 'X',
+                        psutil.STATUS_WAKE_KILL: 'K',
+                        psutil.STATUS_WAKING: 'W',
+                        psutil.STATUS_PARKED: 'P',
+                    }
+                    state = state_map.get(status, status[0] if status else '?')
+                    cpu_percent = pinfo['cpu_percent'] or 0.0
+                    memory_percent = pinfo['memory_percent'] or 0.0
+                    num_threads = pinfo['num_threads'] or 1
+                    ppid = pinfo['ppid'] or 0
                     
                     processes.append(ProcessInfo(
                         pid=pid,
@@ -371,6 +265,9 @@ class SystemMonitorDaemon:
                         num_threads=num_threads,
                         ppid=ppid,
                     ))
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    # Process may have terminated or we don't have access
+                    continue
                 except Exception as e:
                     continue
             
