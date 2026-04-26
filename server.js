@@ -14,7 +14,7 @@ app.use(bodyParser.json());
 
 // Serve React frontend static files (after build)
 // In development, the React dev server will handle this
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+app.use(express.static(path.join(__dirname, '.')));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -73,7 +73,7 @@ wss.on('connection', (ws) => {
 
 // Fallback for React Router - serve index.html for all non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Server configuration
