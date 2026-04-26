@@ -138,13 +138,14 @@ class SystemMonitorDaemon:
         Collects network activity metrics and read/write operations
         """
         net = psutil.net_io_counters()
+        current_time = time.time()
         if self.prev_net_io is None:
-            self.prev_net_io = (net.bytes_sent, net.bytes_recv)
-            return 0.0, 0.0, (net.bytes_sent, net.bytes_recv)
-        time_diff = time.time() - self.prev_time
+            self.prev_net_io = (net.bytes_sent, net.bytes_recv, current_time)
+            return 0.0, 0.0, (net.bytes_sent, net.bytes_recv, current_time)
+        time_diff = current_time - self.prev_net_io[2]
         sent_rate = (net.bytes_sent - self.prev_net_io[0]) / time_diff if time_diff > 0 else 0
         recv_rate = (net.bytes_recv - self.prev_net_io[1]) / time_diff if time_diff > 0 else 0
-        return max(0, sent_rate), max(0, recv_rate), (net.bytes_sent, net.bytes_recv)
+        return max(0, sent_rate), max(0, recv_rate), (net.bytes_sent, net.bytes_recv, current_time)
 
     def _get_process_metrics(self) -> List[ProcessInfo]:
         """
